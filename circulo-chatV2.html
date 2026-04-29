@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circulo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f10;
+    --bg2: #1a1a1c;
+    --bg3: #232326;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8;
+    --text2: #9a9690;
+    --text3: #5a5755;
+    --accent: #d4a853;
+    --accent2: #e8c87a;
+    --green: #4caf7d;
+    --red: #e05c5c;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #app { width: 100%; height: 100dvh; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; }
+
+  /* ── LOGIN ── */
+  #login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 2rem;
+    gap: 2rem;
+  }
+
+  .logo-mark {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
+
+  .logo-text { font-size: 22px; font-weight: 300; letter-spacing: 4px; color: var(--text); text-transform: uppercase; }
+  .logo-sub { font-size: 12px; color: var(--text3); letter-spacing: 1px; }
+
+  .card {
+    width: 100%; max-width: 360px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+  .field input {
+    background: var(--bg3);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--text3); }
+
+  .btn-enter {
+    background: var(--accent);
+    color: #0f0f10;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: .5px;
+    transition: background .2s, transform .1s;
+  }
+  .btn-enter:hover { background: var(--accent2); }
+  .btn-enter:active { transform: scale(0.98); }
+
+  .err { font-size: 12px; color: var(--red); display: none; text-align: center; }
+
+  /* ── CHAT ── */
+  #chat { display: none; flex-direction: column; flex: 1; height: 100dvh; }
+
+  .chat-header {
+    padding: 14px 20px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .online-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .room-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .room-code { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+  .btn-leave {
+    background: none; border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 5px 12px;
+    font-size: 11px; color: var(--text2); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: border-color .2s, color .2s;
+  }
+  .btn-leave:hover { border-color: var(--red); color: var(--red); }
+
+  .messages {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    background: var(--bg);
+  }
+  .messages::-webkit-scrollbar { width: 3px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .sys-msg {
+    text-align: center; font-size: 11px; color: var(--text3);
+    letter-spacing: .5px;
+  }
+
+  .msg-row { display: flex; gap: 10px; align-items: flex-end; animation: fadeUp .25s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .msg-row.mine { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500; flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .bubble-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 68%; }
+  .msg-row.mine .bubble-wrap { align-items: flex-end; }
+  .msg-sender { font-size: 10px; color: var(--text3); letter-spacing: .3px; }
+
+  .bubble {
+    padding: 9px 14px;
+    border-radius: 16px;
+    font-size: 14px; line-height: 1.55;
+    word-break: break-word;
+  }
+  .bubble.theirs {
+    background: var(--bg3);
+    border: 0.5px solid var(--border);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.mine {
+    background: var(--accent);
+    color: #0f0f10;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble img { max-width: 240px; border-radius: 10px; display: block; margin-top: 2px; }
+
+  .msg-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    color: var(--text3);
+  }
+  .msg-row.mine .msg-meta { flex-direction: row-reverse; }
+  .read-count { color: var(--accent); }
+
+  .reactions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .msg-row.mine .reactions { justify-content: flex-end; }
+  .reaction-chip, .react-add, .picker-btn {
+    min-height: 24px;
+    border-radius: 999px;
+    border: 0.5px solid var(--border);
+    background: var(--bg2);
+    color: var(--text2);
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color .2s, background .2s, color .2s;
+  }
+  .reaction-chip:hover, .react-add:hover, .picker-btn:hover { border-color: var(--accent); color: var(--text); }
+  .reaction-chip.active { background: rgba(212,168,83,0.16); border-color: var(--accent); color: var(--accent2); }
+  .reaction-picker {
+    display: none;
+    gap: 4px;
+    padding: 4px;
+    border: 0.5px solid var(--border);
+    background: var(--bg2);
+    border-radius: 999px;
+  }
+  .reaction-picker.open { display: flex; }
+
+  /* ── INPUT ── */
+  #preview-bar {
+    display: none; padding: 8px 20px;
+    border-top: 0.5px solid var(--border);
+    background: var(--bg2);
+    align-items: center; gap: 10px;
+  }
+  #preview-bar img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; }
+  #preview-bar span { font-size: 12px; color: var(--text2); flex: 1; }
+  #preview-bar button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; line-height: 1; }
+  #preview-bar button:hover { color: var(--red); }
+
+  .input-area {
+    position: relative;
+    padding: 14px 20px;
+    border-top: 0.5px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: flex-end; gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .img-btn, .emoji-btn {
+    width: 38px; height: 38px;
+    background: var(--bg3); border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: border-color .2s;
+    color: var(--text2);
+    font-size: 17px;
+  }
+  .img-btn:hover, .emoji-btn:hover { border-color: var(--accent); }
+  .img-btn svg { width: 16px; height: 16px; stroke: var(--text2); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .emoji-panel {
+    position: absolute;
+    left: 68px;
+    bottom: 62px;
+    display: none;
+    grid-template-columns: repeat(8, 30px);
+    gap: 5px;
+    padding: 9px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgba(0,0,0,.28);
+    z-index: 10;
+  }
+  .emoji-panel.open { display: grid; }
+  .emoji-panel button {
+    width: 30px; height: 30px;
+    border: none;
+    background: var(--bg3);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .emoji-panel button:hover { background: rgba(255,255,255,.08); }
+
+  #msg-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 0.5px solid var(--border);
+    border-radius: 19px;
+    padding: 9px 16px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    color: var(--text); resize: none;
+    max-height: 120px; outline: none; line-height: 1.5;
+    transition: border-color .2s;
+  }
+  #msg-input:focus { border-color: var(--border2); }
+  #msg-input::placeholder { color: var(--text3); }
+
+  .send-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background .2s, transform .1s;
+  }
+  .send-btn:hover { background: var(--accent2); }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn svg { width: 15px; height: 15px; fill: #0f0f10; }
+
+  #file-input { display: none; }
+
+  .connecting {
+    display: flex; align-items: center; justify-content: center;
+    flex: 1; flex-direction: column; gap: 12px; color: var(--text3); font-size: 13px;
+  }
+  .spinner {
+    width: 20px; height: 20px; border: 1.5px solid var(--border2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- LOGIN -->
+  <div id="login">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
+      </div>
+      <div class="logo-text">Circulo</div>
+      <div class="logo-sub">초대받은 사람만 입장할 수 있어요</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>초대 코드</label>
+        <input type="text" id="invite-code" placeholder="예: ALPHA-2024" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>내 이름</label>
+        <input type="text" id="username" placeholder="이름 입력" maxlength="12" autocomplete="off" />
+      </div>
+      <div class="err" id="err-msg">초대 코드가 올바르지 않아요.</div>
+      <button class="btn-enter" onclick="tryLogin()">입장하기</button>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat">
+    <div class="chat-header">
+      <div class="header-left">
+        <div class="online-dot"></div>
+        <div>
+          <div class="room-title" id="room-title">채팅방</div>
+          <div class="room-code" id="room-code"></div>
+        </div>
+      </div>
+      <button class="btn-leave" onclick="leaveRoom()">나가기</button>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div id="preview-bar">
+      <img id="preview-img" src="" alt="" />
+      <span id="preview-name"></span>
+      <button onclick="cancelImg()">✕</button>
+    </div>
+    <div class="input-area">
+      <div class="emoji-panel" id="emoji-panel"></div>
+      <button class="img-btn" onclick="document.getElementById('file-input').click()" title="이미지 업로드">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </button>
+      <button class="emoji-btn" onclick="toggleEmojiPanel()" title="이모지">😊</button>
+      <input type="file" id="file-input" accept="image/*" onchange="handleImg(event)" />
+      <textarea id="msg-input" rows="1" placeholder="메시지를 입력하세요... 캡처 이미지는 Ctrl+V로 붙여넣을 수 있어요" onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
+      <button class="send-btn" onclick="send()">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://zhqetddaqtexaofrlpoo.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpocWV0ZGRhcXRleGFvZnJscG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MTA5MDMsImV4cCI6MjA5Mjk4NjkwM30.dBj7xPY-u1jTTJ4zveexsXXaHdmF0NPisNbJotO2-N0';
+
+const ROOMS = {
+  'ALPHA-2024': '알파팀 채팅방',
+  'BETA-5678':  '베타팀 채팅방',
+  'DEMO-1234':  '데모 채팅방',
+};
+
+const COLORS = ['#d4a853','#4caf7d','#5b8dd9','#c07bc0','#e07b5b','#5bbcb8'];
+const EMOJIS = ['😊','😂','👍','❤️','🔥','👏','🙌','😮','😢','🙏','🎉','✨','✅','👀','💯','🤔'];
+const REACTION_EMOJIS = ['👍','❤️','😂','🔥','👏','😮'];
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let me = '', myColor = '', currentRoom = null, pendingImg = null;
+let userId = getOrCreateUserId();
+let channel = null, pollTimer = null;
+let renderedIds = new Set();
+let messageCache = new Map();
+let readMap = new Map();       // message_id -> Set(reader_id)
+let reactionMap = new Map();   // message_id -> Map(emoji -> Set(reactor_id))
+
+function getOrCreateUserId() {
+  let id = localStorage.getItem('circulo_user_id');
+  if (!id) {
+    id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'u_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+    localStorage.setItem('circulo_user_id', id);
+  }
+  return id;
+}
+function getColor(seed) {
+  const i = [...seed].reduce((a,c) => a + c.charCodeAt(0), 0) % COLORS.length;
+  return COLORS[i];
+}
+function initials(name) { return (name || '?').slice(0,2).toUpperCase(); }
+function formatTime(value) {
+  const d = value ? new Date(value) : new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+function esc(s = '') { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function isMine(row) { return (row.sender_id && row.sender_id === userId) || (!row.sender_id && row.sender === me); }
+function senderName(row) { return row.sender_nickname || row.sender || 'Unknown'; }
+
+function initUI() {
+  const savedName = localStorage.getItem('circulo_nickname');
+  const savedRoom = localStorage.getItem('circulo_last_room');
+  if (savedName) document.getElementById('username').value = savedName;
+  if (savedRoom) document.getElementById('invite-code').value = savedRoom;
+
+  const panel = document.getElementById('emoji-panel');
+  panel.innerHTML = EMOJIS.map(e => `<button type="button" onclick="insertEmoji('${e}')">${e}</button>`).join('');
+
+  document.getElementById('msg-input').addEventListener('paste', handlePaste);
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.emoji-panel') && !e.target.closest('.emoji-btn')) {
+      document.getElementById('emoji-panel').classList.remove('open');
+    }
+    if (!e.target.closest('.reaction-picker') && !e.target.closest('.react-add')) {
+      document.querySelectorAll('.reaction-picker.open').forEach(p => p.classList.remove('open'));
+    }
+  });
+}
+
+function toggleEmojiPanel() {
+  document.getElementById('emoji-panel').classList.toggle('open');
+}
+function insertEmoji(emoji) {
+  const input = document.getElementById('msg-input');
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+  input.focus();
+  input.selectionStart = input.selectionEnd = start + emoji.length;
+  resize(input);
+}
+
+async function tryLogin() {
+  const code = document.getElementById('invite-code').value.trim().toUpperCase();
+  const name = document.getElementById('username').value.trim();
+  const err = document.getElementById('err-msg');
+  if (!ROOMS[code]) { err.style.display = 'block'; return; }
+  if (!name) { document.getElementById('username').focus(); return; }
+
+  err.style.display = 'none';
+  me = name;
+  myColor = getColor(userId + name);
+  localStorage.setItem('circulo_nickname', me);
+  localStorage.setItem('circulo_last_room', code);
+  await upsertUser(code);
+  enterRoom(code);
+}
+
+async function upsertUser(code) {
+  const payload = { room: code, user_id: userId, nickname: me, color: myColor, updated_at: new Date().toISOString() };
+  const { error } = await sb.from('chat_users').upsert(payload, { onConflict: 'room,user_id' });
+  if (error) console.warn('chat_users upsert error:', error.message);
+}
+
+async function enterRoom(code) {
+  currentRoom = code;
+  renderedIds = new Set();
+  messageCache = new Map();
+  readMap = new Map();
+  reactionMap = new Map();
+
+  document.getElementById('room-title').textContent = ROOMS[code];
+  document.getElementById('room-code').textContent = '코드: ' + code + ' · ' + me;
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('chat').style.display = 'flex';
+
+  const area = document.getElementById('messages');
+  area.innerHTML = '<div class="connecting"><div class="spinner"></div><span>연결 중...</span></div>';
+
+  await loadAllData(true);
+  addSysMsg(me + '님이 입장했어요');
+  subscribeRealtime(code);
+  startPolling();
+
+  document.getElementById('msg-input').focus();
+}
+
+async function loadAllData(initial = false) {
+  if (!currentRoom) return;
+  const [msgRes, readRes, reactionRes] = await Promise.all([
+    sb.from('messages').select('*').eq('room', currentRoom).order('created_at', { ascending: true }),
+    sb.from('message_reads').select('*').eq('room', currentRoom),
+    sb.from('message_reactions').select('*').eq('room', currentRoom)
+  ]);
+
+  if (msgRes.error) console.warn('messages load error:', msgRes.error.message);
+  if (readRes.error) console.warn('message_reads load error:', readRes.error.message);
+  if (reactionRes.error) console.warn('message_reactions load error:', reactionRes.error.message);
+
+  buildReadMap(readRes.data || []);
+  buildReactionMap(reactionRes.data || []);
+
+  const area = document.getElementById('messages');
+  if (initial) area.innerHTML = '';
+
+  (msgRes.data || []).forEach(row => renderMsg(row));
+  refreshAllReadLabels();
+  refreshAllReactions();
+  await markMessagesRead(msgRes.data || []);
+  scrollBottom();
+}
+
+function buildReadMap(rows) {
+  readMap = new Map();
+  rows.forEach(r => {
+    const key = String(r.message_id);
+    if (!readMap.has(key)) readMap.set(key, new Set());
+    readMap.get(key).add(r.reader_id);
+  });
+}
+function buildReactionMap(rows) {
+  reactionMap = new Map();
+  rows.forEach(r => addReactionToMap(r));
+}
+function addReactionToMap(r) {
+  const key = String(r.message_id);
+  if (!reactionMap.has(key)) reactionMap.set(key, new Map());
+  if (!reactionMap.get(key).has(r.emoji)) reactionMap.get(key).set(r.emoji, new Set());
+  reactionMap.get(key).get(r.emoji).add(r.reactor_id);
+}
+function removeReactionFromMap(r) {
+  const key = String(r.message_id);
+  const emojiMap = reactionMap.get(key);
+  if (!emojiMap) return;
+  const users = emojiMap.get(r.emoji);
+  if (!users) return;
+  users.delete(r.reactor_id);
+  if (users.size === 0) emojiMap.delete(r.emoji);
+  if (emojiMap.size === 0) reactionMap.delete(key);
+}
+
+function subscribeRealtime(code) {
+  if (channel) sb.removeChannel(channel);
+  channel = sb.channel('room:' + code)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room=eq.' + code }, payload => {
+      renderMsg(payload.new);
+      markMessagesRead([payload.new]);
+      scrollBottom();
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'room=eq.' + code }, payload => {
+      const r = payload.new;
+      const key = String(r.message_id);
+      if (!readMap.has(key)) readMap.set(key, new Set());
+      readMap.get(key).add(r.reader_id);
+      updateReadLabel(key);
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reactions', filter: 'room=eq.' + code }, payload => {
+      addReactionToMap(payload.new);
+      renderReactions(payload.new.message_id);
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'message_reactions', filter: 'room=eq.' + code }, payload => {
+      removeReactionFromMap(payload.old);
+      renderReactions(payload.old.message_id);
+    })
+    .subscribe(status => console.log('Realtime:', status));
+}
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => loadAllData(false), 3000);
+}
+
+function leaveRoom() {
+  addSysMsg(me + '님이 나갔어요');
+  setTimeout(() => {
+    if (channel) sb.removeChannel(channel);
+    if (pollTimer) clearInterval(pollTimer);
+    channel = null;
+    pollTimer = null;
+    currentRoom = null;
+    cancelImg();
+    document.getElementById('chat').style.display = 'none';
+    document.getElementById('login').style.display = 'flex';
+    document.getElementById('messages').innerHTML = '';
+    document.getElementById('invite-code').value = localStorage.getItem('circulo_last_room') || '';
+  }, 600);
+}
+
+function renderMsg(row) {
+  const area = document.getElementById('messages');
+  const id = String(row.id || 'legacy_' + row.created_at + '_' + Math.random());
+  if (row.id && renderedIds.has(id)) return;
+  if (row.id) renderedIds.add(id);
+  messageCache.set(id, row);
+
+  if (row.sender === '__system__') {
+    const d = document.createElement('div');
+    d.className = 'sys-msg';
+    d.dataset.id = id;
+    d.textContent = row.content;
+    area.appendChild(d);
+    return;
+  }
+
+  const mine = isMine(row);
+  const name = senderName(row);
+  const color = row.color || getColor(name);
+  const bg = color + '22';
+  const content = row.img_url
+    ? `<img src="${esc(row.img_url)}" alt="이미지" onload="scrollBottom()" />`
+    : esc(row.content || '').replace(/\n/g, '<br>');
+
+  const div = document.createElement('div');
+  div.className = 'msg-row' + (mine ? ' mine' : '');
+  div.dataset.id = id;
+  div.innerHTML = `
+    <div class="avatar" style="background:${bg};color:${color}">${esc(initials(name))}</div>
+    <div class="bubble-wrap">
+      ${!mine ? `<div class="msg-sender">${esc(name)}</div>` : ''}
+      <div class="bubble ${mine ? 'mine' : 'theirs'}">${content}</div>
+      <div class="msg-meta">
+        <span class="msg-time">${formatTime(row.created_at)}</span>
+        ${mine ? `<span class="read-count" data-id="${id}"></span>` : ''}
+      </div>
+      <div class="reactions" id="reactions-${id}"></div>
+    </div>`;
+  area.appendChild(div);
+  updateReadLabel(id);
+  renderReactions(id);
+}
+
+async function markMessagesRead(rows) {
+  const payloads = (rows || [])
+    .filter(row => row && row.id && row.sender !== '__system__' && !isMine(row))
+    .map(row => ({ message_id: row.id, room: currentRoom, reader_id: userId, reader_nickname: me }));
+  if (!payloads.length) return;
+  const { error } = await sb.from('message_reads').upsert(payloads, { onConflict: 'message_id,reader_id', ignoreDuplicates: true });
+  if (error) console.warn('message_reads insert error:', error.message);
+}
+
+function updateReadLabel(messageId) {
+  const id = String(messageId);
+  const el = document.querySelector(`.read-count[data-id="${CSS.escape(id)}"]`);
+  if (!el) return;
+  const readers = readMap.get(id) || new Set();
+  const count = [...readers].filter(reader => reader !== userId).length;
+  el.textContent = count > 0 ? `읽음 ${count}` : '안읽음';
+}
+function refreshAllReadLabels() {
+  document.querySelectorAll('.read-count').forEach(el => updateReadLabel(el.dataset.id));
+}
+
+function renderReactions(messageId) {
+  const id = String(messageId);
+  const box = document.getElementById('reactions-' + id);
+  if (!box) return;
+  const emojiMap = reactionMap.get(id) || new Map();
+  const chips = [...emojiMap.entries()].map(([emoji, users]) => {
+    const active = users.has(userId) ? ' active' : '';
+    return `<button class="reaction-chip${active}" onclick="toggleReaction('${id}', '${emoji}')">${emoji} ${users.size}</button>`;
+  }).join('');
+  const pickerButtons = REACTION_EMOJIS.map(e => `<button class="picker-btn" onclick="toggleReaction('${id}', '${e}')">${e}</button>`).join('');
+  box.innerHTML = `
+    ${chips}
+    <button class="react-add" onclick="toggleReactionPicker(event, '${id}')">＋</button>
+    <div class="reaction-picker" id="picker-${id}">${pickerButtons}</div>`;
+}
+function refreshAllReactions() {
+  messageCache.forEach((_, id) => renderReactions(id));
+}
+function toggleReactionPicker(event, messageId) {
+  event.stopPropagation();
+  const picker = document.getElementById('picker-' + messageId);
+  if (!picker) return;
+  document.querySelectorAll('.reaction-picker.open').forEach(p => { if (p !== picker) p.classList.remove('open'); });
+  picker.classList.toggle('open');
+}
+async function toggleReaction(messageId, emoji) {
+  const id = String(messageId);
+  const users = reactionMap.get(id)?.get(emoji);
+  const hasMine = users?.has(userId);
+  if (hasMine) {
+    const { error } = await sb.from('message_reactions')
+      .delete()
+      .eq('message_id', Number(id))
+      .eq('reactor_id', userId)
+      .eq('emoji', emoji);
+    if (error) console.warn('reaction delete error:', error.message);
+  } else {
+    const { error } = await sb.from('message_reactions')
+      .insert({ message_id: Number(id), room: currentRoom, reactor_id: userId, reactor_nickname: me, emoji });
+    if (error && !String(error.message).includes('duplicate')) console.warn('reaction insert error:', error.message);
+  }
+}
+
+async function addSysMsg(text) {
+  if (!currentRoom) return;
+  await sb.from('messages').insert({ room: currentRoom, sender: '__system__', color: '', content: text });
+}
+
+async function send() {
+  if (!currentRoom) return;
+  if (pendingImg) {
+    await sb.from('messages').insert({ room: currentRoom, sender: me, sender_id: userId, sender_nickname: me, color: myColor, img_url: pendingImg, content: '' });
+    cancelImg();
+    return;
+  }
+  const inp = document.getElementById('msg-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  document.getElementById('emoji-panel').classList.remove('open');
+  await sb.from('messages').insert({ room: currentRoom, sender: me, sender_id: userId, sender_nickname: me, color: myColor, content: text });
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+function resize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+function scrollBottom() { const a = document.getElementById('messages'); a.scrollTop = a.scrollHeight; }
+
+function handleImg(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  loadImageFile(file, file.name || 'image');
+  e.target.value = '';
+}
+function handlePaste(e) {
+  const items = e.clipboardData?.items || [];
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        loadImageFile(file, '붙여넣은 이미지');
+      }
+      return;
+    }
+  }
+}
+function loadImageFile(file, name) {
+  if (!file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    pendingImg = ev.target.result;
+    document.getElementById('preview-img').src = pendingImg;
+    document.getElementById('preview-name').textContent = name + ' · 전송 버튼을 누르면 업로드됩니다';
+    document.getElementById('preview-bar').style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+function cancelImg() {
+  pendingImg = null;
+  document.getElementById('preview-bar').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('preview-name').textContent = '';
+}
+
+window.addEventListener('beforeunload', () => {
+  if (channel) sb.removeChannel(channel);
+  if (pollTimer) clearInterval(pollTimer);
+});
+
+document.getElementById('invite-code').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('username').focus(); });
+document.getElementById('username').addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
+initUI();
+</script>
+</body>
+</html>
